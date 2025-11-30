@@ -7,9 +7,9 @@ import supervision as sv
 import threading
 import uvicorn
 
-from tool_state import InventoryStateManager
 from api import state_manager, update_annotated_frame, app
 
+from tool_state import InventoryStateManager, DrawerOpenState
 model = YOLO("tools_medium_480.pt")
 tracker = sv.ByteTrack(track_activation_threshold=0.2, minimum_matching_threshold=0.7, lost_track_buffer=90)
 box_annotator = sv.BoxAnnotator()
@@ -18,32 +18,9 @@ trace_annotator = sv.TraceAnnotator()
 
 video_capture = cv2.VideoCapture(0)
 
-"""
-# key is the class, value is a dict where the key is the drawer identifier and the value is the count of that class in that drawer
-current_inventory: dict[str, dict[str, int]] = {}
-
-# using existing face recognition model to detect the user
-currently_detected_user: str | None
-
-event_log: list of Events that matches the schema in audit-frontend/src/data/dummy.auditlogs.ts as closely as possible
-
-global_states:
-  - no_drawer_open
-  - drawer_open:
-        drawer_identifier
-        tool_detection_state: 
-            - drawer_opened_waiting_for_initial_tool_detection: # getting initial drawer state on open so we can diff against the state when the drawer closes. for this, we should wait for the list of tools to be stable for 1 second before auto transitioning to drawer_opened_tools_detected state.
-                initial_tool_detection_state: set of f"{class_name} {tracker_id}"
-            - drawer_opened_watching_for_tool_checkin_or_checkout # now people can add or remove tools to the drawer. need to have some heuristic for this to handle the drawer closing, so that tool_detection_state is not updated when the drawer is closing since that could incorrectly indicate that all the tools were removed.
-                tool_detection_state: set of f"{class_name} {tracker_id}"
-
-side effects:
-on transition from drawer_opened_tools_detected to no_drawer_open, diff the initial_tool_detection_state and the tool_detection_state to get the list of tools that were added or removed. then "commit" the new state to the current inventory with the new state. when w
-"""
-
-# state_manager is now imported from api.py to share state with FastAPI
 
 clicked_point = None
+previous_drawer_identifier = None
 
 def on_mouse(event, x, y, flags, param):
     global clicked_point
@@ -93,6 +70,42 @@ def get_depth_at_point(frame, x: int, y:int):
     depth = frame[y, x]
     return depth
 
+def get_drawer_identifier_from_depth(left_depth: int, right_depth: int) -> str | None:
+    """
+    Maps depth values to drawer identifiers based on depth ranges.
+    Returns drawer identifier string or None if no drawer is open.
+    """
+    # Check right drawer first
+    if 890 > right_depth > 861:
+        return "sanding and scales"
+    if 860 > right_depth > 841:
+        return "clamps"
+    if 840 > right_depth > 826:
+        return "electrical and hot glue"
+    if 825 > right_depth > 801:
+        return "sockets and allen keys"
+    if 800 > right_depth > 780:
+        return "drivers and bits"
+    
+    # Check left drawer
+    if 890 > left_depth > 861:
+        return "drill and dremmel"
+    if 860 > left_depth > 841:
+        return "measruing"
+    if 840 > left_depth > 826:
+        return "hammers"
+    if 825 > left_depth > 801:
+        return "pliers and cutters"
+    if 800 > left_depth > 780:
+        return "drivers and bits"
+    
+    # No drawer open (depth indicates closed state)
+    if 920 > right_depth > 891 or 920 > left_depth > 891:
+        return None
+    
+    # Default: no drawer open if depth doesn't match any range
+    return None
+
 cv2.namedWindow("Depth")
 cv2.setMouseCallback("Depth", on_mouse)
 
@@ -117,7 +130,7 @@ def object_tracking_annotated_frame(frame: np.ndarray):
     labels = [
         f"#{tracker_id} {class_name}"
         for class_name, tracker_id
-        in zip(detections.data["class_name"], detections.tracker_id)
+        in zip(detections.data["class_name"], detections.tracker_id or [])
     ]
 
     annotated_frame = box_annotator.annotate(
@@ -138,6 +151,29 @@ while True:
     for result in results:
         detection_frame = result.plot(img=detection_frame)
     
+    # Get tracked detections for tool state management
+    tracked_results = model(kinect_color_frame)[0]
+    tracked_detections = sv.Detections.from_ultralytics(tracked_results)
+    tracked_detections = tracker.update_with_detections(tracked_detections)
+    
+    # Extract tool detections in format "{class_name} {tracker_id}"
+    tool_detection_set = set()
+    if "class_name" in tracked_detections.data and tracked_detections.tracker_id is not None:
+        tracker_ids = tracked_detections.tracker_id
+        for class_name, tracker_id in zip(tracked_detections.data["class_name"], tracker_ids):
+            if tracker_id is not None:
+                tool_detection_set.add(f"{class_name} {tracker_id}")
+    
+    # Update tool detection state if drawer is open
+    if isinstance(state_manager.tool_detection_state, DrawerOpenState):
+        drawer_state = state_manager.tool_detection_state
+        if drawer_state.detailed_state == "waiting_for_initial_tool_detection":
+            # Update initial tool detection state
+            drawer_state.initial_tool_detection_state = tool_detection_set.copy()
+        elif drawer_state.detailed_state == "watching_for_tool_checkin_or_checkout":
+            # Update current tool detection state
+            drawer_state.current_tool_detection_state = tool_detection_set.copy()
+    
     rgb_frame = frame[:, :, ::-1]
     small = cv2.resize(rgb_frame, (0, 0), fx=0.25, fy=0.25)
     
@@ -150,6 +186,9 @@ while True:
     
     face_locations = face_recognition.face_locations(small)
     face_encodings = face_recognition.face_encodings(small, face_locations)
+    
+    # Track detected user for this frame
+    detected_user = None
     
        # Loop through each face in this frame of video
     for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
@@ -183,6 +222,9 @@ while True:
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+    
+    # Update state manager with detected user (or None if no face detected)
+    state_manager.update_currently_detected_user(detected_user)
 
     # Get annotated frame with object tracking
     annotated_frame = object_tracking_annotated_frame(kinect_color_frame.copy())
@@ -198,35 +240,32 @@ while True:
     left_depth = get_depth_at_point(depth_frame, 485, 367)
     right_depth = get_depth_at_point(depth_frame, 243,385)
     
+    # Get current drawer identifier from depth
+    current_drawer_identifier = get_drawer_identifier_from_depth(left_depth, right_depth)
     
+    # Handle drawer state transitions
+    if previous_drawer_identifier != current_drawer_identifier:
+        # Transition from no drawer to drawer open
+        if previous_drawer_identifier is None and current_drawer_identifier is not None:
+            state_manager.transition_to_drawer_open(current_drawer_identifier)
+        # Transition from drawer open to no drawer
+        elif previous_drawer_identifier is not None and current_drawer_identifier is None:
+            state_manager.transition_to_no_drawer_open()
+        # Transition from one drawer to different drawer
+        elif previous_drawer_identifier is not None and current_drawer_identifier is not None and previous_drawer_identifier != current_drawer_identifier:
+            state_manager.transition_to_no_drawer_open()
+            state_manager.transition_to_drawer_open(current_drawer_identifier)
+        
+        previous_drawer_identifier = current_drawer_identifier
+    
+    # Debug output (keeping original print statements for reference)
     # print(left_depth)
     print(right_depth)
     
-    if  920 > right_depth > 891:
+    if current_drawer_identifier is None:
         print("no drawer open")
-    if 890 > right_depth > 861:
-        print("sanding and scales")
-    if 860 > right_depth > 841:
-        print("clamps")
-    if 840 > right_depth > 826:
-        print("electrical and hot glue")
-    if 825 > right_depth > 801:
-        print("sockets and allen keys")
-    if 800 > right_depth > 780:
-        print("drivers and bits")
-        
-    if  920 > left_depth > 891:
-        print("no drawer open")
-    if 890 > left_depth > 861:
-        print("drill and dremmel")
-    if 860 > left_depth > 841:
-        print("measruing")
-    if 840 > left_depth > 826:
-        print("hammers")
-    if 825 > left_depth > 801:
-        print("pliers and cutters")
-    if 800 > left_depth > 780:
-        print("drivers and bits")
+    else:
+        print(current_drawer_identifier)
 
     if cv2.waitKey(1) & 0xFF == 27:
         break
