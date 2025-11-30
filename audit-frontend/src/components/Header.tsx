@@ -5,6 +5,7 @@ import {
   Menu,
   FileText,
   X,
+  Camera,
 } from 'lucide-react'
 
 export default function Header() {
@@ -58,6 +59,18 @@ export default function Header() {
           >
             <FileText size={20} />
             <span className="font-medium">Audit Logs</span>
+          </Link>
+          <Link
+            to="/live-view"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+            activeProps={{
+              className:
+                'flex items-center gap-3 p-3 rounded-lg bg-brand hover:bg-brand transition-colors mb-2',
+            }}
+          >
+            <Camera size={20} />
+            <span className="font-medium">Live View</span>
           </Link>
         </nav>
       </aside>

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LiveViewRouteImport } from './routes/live-view'
 import { Route as AuditLogsRouteImport } from './routes/audit-logs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiGetAnnotatedLiveFrameRouteImport } from './routes/api/get-annotated-live-frame'
@@ -22,6 +23,11 @@ import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
 
+const LiveViewRoute = LiveViewRouteImport.update({
+  id: '/live-view',
+  path: '/live-view',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuditLogsRoute = AuditLogsRouteImport.update({
   id: '/audit-logs',
   path: '/audit-logs',
@@ -87,6 +93,7 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
+  '/live-view': typeof LiveViewRoute
   '/api/get-annotated-live-frame': typeof ApiGetAnnotatedLiveFrameRoute
   '/api/audit-logs/events': typeof ApiAuditLogsEventsRoute
   '/api/audit-logs/overview': typeof ApiAuditLogsOverviewRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
+  '/live-view': typeof LiveViewRoute
   '/api/get-annotated-live-frame': typeof ApiGetAnnotatedLiveFrameRoute
   '/api/audit-logs/events': typeof ApiAuditLogsEventsRoute
   '/api/audit-logs/overview': typeof ApiAuditLogsOverviewRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
+  '/live-view': typeof LiveViewRoute
   '/api/get-annotated-live-frame': typeof ApiGetAnnotatedLiveFrameRoute
   '/api/audit-logs/events': typeof ApiAuditLogsEventsRoute
   '/api/audit-logs/overview': typeof ApiAuditLogsOverviewRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audit-logs'
+    | '/live-view'
     | '/api/get-annotated-live-frame'
     | '/api/audit-logs/events'
     | '/api/audit-logs/overview'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audit-logs'
+    | '/live-view'
     | '/api/get-annotated-live-frame'
     | '/api/audit-logs/events'
     | '/api/audit-logs/overview'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/audit-logs'
+    | '/live-view'
     | '/api/get-annotated-live-frame'
     | '/api/audit-logs/events'
     | '/api/audit-logs/overview'
@@ -175,6 +187,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditLogsRoute: typeof AuditLogsRoute
+  LiveViewRoute: typeof LiveViewRoute
   ApiGetAnnotatedLiveFrameRoute: typeof ApiGetAnnotatedLiveFrameRoute
   ApiAuditLogsEventsRoute: typeof ApiAuditLogsEventsRoute
   ApiAuditLogsOverviewRoute: typeof ApiAuditLogsOverviewRoute
@@ -189,6 +202,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/live-view': {
+      id: '/live-view'
+      path: '/live-view'
+      fullPath: '/live-view'
+      preLoaderRoute: typeof LiveViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/audit-logs': {
       id: '/audit-logs'
       path: '/audit-logs'
@@ -279,6 +299,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditLogsRoute: AuditLogsRoute,
+  LiveViewRoute: LiveViewRoute,
   ApiGetAnnotatedLiveFrameRoute: ApiGetAnnotatedLiveFrameRoute,
   ApiAuditLogsEventsRoute: ApiAuditLogsEventsRoute,
   ApiAuditLogsOverviewRoute: ApiAuditLogsOverviewRoute,
