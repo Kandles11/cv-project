@@ -6,6 +6,7 @@ from ultralytics import YOLO
 import supervision as sv
 import threading
 import uvicorn
+import base64
 
 from api import state_manager, update_annotated_frame, app
 
@@ -218,7 +219,12 @@ while True:
             # Update current tool detection state
             drawer_state.current_tool_detection_state = tool_detection_set.copy()
             # Record snapshot for 2-second buffer
-            drawer_state.record_tool_detection_snapshot()
+            # Encode frame as base64 JPEG data URI
+            _, buffer = cv2.imencode('.jpg', kinect_color_frame)
+            frame_bytes = buffer.tobytes()
+            frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
+            frame_data_uri = f"data:image/jpeg;base64,{frame_base64}"
+            drawer_state.record_tool_detection_snapshot(frame_data_uri)
     
     rgb_frame = frame[:, :, ::-1]
     small = cv2.resize(rgb_frame, (0, 0), fx=0.25, fy=0.25)

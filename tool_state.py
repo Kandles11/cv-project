@@ -45,8 +45,8 @@ class DrawerOpenState:
     current_tool_detection_state: set[str] = field(default_factory=set)
     
     # Buffer to store timestamped snapshots of current_tool_detection_state
-    # Each entry is (timestamp, tool_detection_state_copy)
-    tool_detection_state_history: list[tuple[datetime, set[str]]] = field(default_factory=list)
+    # Each entry is (timestamp, tool_detection_state_copy, frame_base64)
+    tool_detection_state_history: list[tuple[datetime, set[str], str]] = field(default_factory=list)
 
     state: Literal["drawer_open"] = "drawer_open"
 
@@ -60,23 +60,24 @@ class DrawerOpenState:
         else:
             return "watching_for_tool_checkin_or_checkout"
     
-    def record_tool_detection_snapshot(self):
+    def record_tool_detection_snapshot(self, frame_base64: str):
         """Record a snapshot of current_tool_detection_state with timestamp and cleanup old snapshots."""
         now = datetime.now()
         # Store snapshot with current timestamp
-        self.tool_detection_state_history.append((now, self.current_tool_detection_state.copy()))
+        self.tool_detection_state_history.append((now, self.current_tool_detection_state.copy(), frame_base64))
         
         # Clean up snapshots older than 2 seconds
         cutoff_time = now - timedelta(seconds=2)
         self.tool_detection_state_history = [
-            (timestamp, state) for timestamp, state in self.tool_detection_state_history
+            (timestamp, state, frame) for timestamp, state, frame in self.tool_detection_state_history
             if timestamp > cutoff_time
         ]
     
-    def get_tool_detection_state_2_seconds_ago(self) -> set[str]:
+    def get_tool_detection_state_2_seconds_ago(self) -> tuple[set[str], str]:
         """
         Get the tool detection state from approximately 2 seconds ago.
         Falls back to the most recent non-empty snapshot, or current state if no snapshots exist.
+        Returns a tuple of (state, frame_base64).
         """
         now = datetime.now()
         target_time = now - timedelta(seconds=2)
@@ -85,30 +86,30 @@ class DrawerOpenState:
         candidates_at_or_before = []
         candidates_after = []
         
-        for timestamp, state in self.tool_detection_state_history:
+        for timestamp, state, frame in self.tool_detection_state_history:
             if timestamp <= target_time:
-                candidates_at_or_before.append((timestamp, state))
+                candidates_at_or_before.append((timestamp, state, frame))
             else:
-                candidates_after.append((timestamp, state))
+                candidates_after.append((timestamp, state, frame))
         
         # Prefer the most recent snapshot at or before 2 seconds ago
         if candidates_at_or_before:
             # Sort by timestamp descending to get the most recent
             candidates_at_or_before.sort(key=lambda x: x[0], reverse=True)
-            return candidates_at_or_before[0][1]
+            return (candidates_at_or_before[0][1], candidates_at_or_before[0][2])
         
         # If no snapshot at or before 2 seconds, use the closest one overall
         if candidates_after:
             candidates_after.sort(key=lambda x: abs((x[0] - target_time).total_seconds()))
-            return candidates_after[0][1]
+            return (candidates_after[0][1], candidates_after[0][2])
         
         # Fallback: use the most recent non-empty snapshot
-        for timestamp, state in reversed(self.tool_detection_state_history):
+        for timestamp, state, frame in reversed(self.tool_detection_state_history):
             if state:  # Non-empty set
-                return state
+                return (state, frame)
         
         # Final fallback: use current state (might be empty, but it's better than nothing)
-        return self.current_tool_detection_state
+        return (self.current_tool_detection_state, "")
 
 
 class InventoryStateManager:
@@ -174,16 +175,16 @@ class InventoryStateManager:
         self.tool_detection_state = NoDrawerOpenState()
 
         # Use 2-second-old snapshot instead of current (potentially empty) state
-        tool_detection_state_to_use = save_state.get_tool_detection_state_2_seconds_ago()
+        tool_detection_state_to_use, frame_base64 = save_state.get_tool_detection_state_2_seconds_ago()
 
         checked_out_tools = save_state.initial_tool_detection_state - tool_detection_state_to_use
         returned_tools = tool_detection_state_to_use - save_state.initial_tool_detection_state
         for tool in checked_out_tools:
             self.current_inventory[tool][save_state.drawer_identifier] -= 1
-            self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool))
+            self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
         for tool in returned_tools:
             self.current_inventory[tool][save_state.drawer_identifier] += 1
-            self._generate_event_log_entry(event_type="tool_checkin", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool))
+            self._generate_event_log_entry(event_type="tool_checkin", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
 
         print(f"prev state: {save_state}")
         print(f"new state: {self.tool_detection_state}")
@@ -200,7 +201,7 @@ class InventoryStateManager:
             type=tool_class,
         )
 
-    def _generate_event_log_entry(self, event_type: Literal["tool_checkout", "tool_checkin"], user: User, tool: Tool):
+    def _generate_event_log_entry(self, event_type: Literal["tool_checkout", "tool_checkin"], user: User, tool: Tool, event_image_base64: str):
         now = datetime.now()
         timestamp = int(now.timestamp())
         self.event_log.append(InventoryUpdateLogEntry(
@@ -209,5 +210,5 @@ class InventoryStateManager:
             type=event_type,
             user=user,
             tool=tool,
-            eventImageUrl=f"https://picsum.photos/seed/{timestamp}/500"
+            eventImageUrl=event_image_base64 if event_image_base64 else f"https://picsum.photos/seed/{timestamp}/500"
         ))
