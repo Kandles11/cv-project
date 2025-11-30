@@ -104,10 +104,10 @@ async def get_overview():
         if event["type"] == "tool_checkout":
             # For now, we'll use a simple count
             # TODO: Track specific tools when tool information is added
-            user_id = event["user"]["id"]
+            user_id = event["user"].id
             checked_out_tools[user_id] = checked_out_tools.get(user_id, 0) + 1
         elif event["type"] == "tool_checkin":
-            user_id = event["user"]["id"]
+            user_id = event["user"].id
             if user_id in checked_out_tools:
                 checked_out_tools[user_id] = max(0, checked_out_tools[user_id] - 1)
     
