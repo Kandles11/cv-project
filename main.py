@@ -2,8 +2,21 @@ import freenect
 import cv2
 import numpy as np
 import face_recognition
+from ultralytics import YOLO
+
+model = YOLO("tools_medium_480.pt")
 
 video_capture = cv2.VideoCapture(1)
+
+clicked_point = None
+
+def on_mouse(event, x, y, flags, param):
+    global clicked_point
+    if event == cv2.EVENT_LBUTTONDOWN:
+        clicked_point = (x, y)
+        print("Clicked at:", clicked_point)
+
+print("setting up facial encodings")
 
 mason_image = face_recognition.load_image_file("faces/mason.png")
 mason_face_encoding = face_recognition.face_encodings(mason_image)[0]
@@ -16,6 +29,8 @@ kynlee_face_encoding = face_recognition.face_encodings(kynlee_image)[0]
 
 # mike_image = face_recognition.load_image_file("faces/mike.png")
 # mike_face_encoding = face_recognition.face_encodings(mike_image)[0]
+
+print("we have finished encodings")
 
 known_face_encodings = [
     mason_face_encoding,
@@ -43,14 +58,28 @@ def get_depth_at_point(frame, x: int, y:int):
     depth = frame[y, x]
     return depth
 
+cv2.namedWindow("Depth")
+cv2.setMouseCallback("Depth", on_mouse)
 
 while True:
     depth_frame = get_depth_frame()
-    rgb = get_video()
+    kinect_color_frame = get_video()
     ret, frame = video_capture.read()
+    
+    results = model.predict(kinect_color_frame)
+    detection_frame = kinect_color_frame.copy()
+    for result in results:
+        detection_frame = result.plot(img=detection_frame)
     
     rgb_frame = frame[:, :, ::-1]
     small = cv2.resize(rgb_frame, (0, 0), fx=0.25, fy=0.25)
+    
+    if clicked_point is not None:
+        cx, cy = clicked_point
+        if 0 <= cx < depth_frame.shape[1] and 0 <= cy < depth_frame.shape[0]:
+            depth_value = depth_frame[cy, cx]
+            print(f"Depth at {clicked_point}: {depth_value}")
+        clicked_point = None
     
     face_locations = face_recognition.face_locations(small)
     face_encodings = face_recognition.face_encodings(small, face_locations)
@@ -85,24 +114,45 @@ while True:
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-    cv2.imshow('RGB', rgb)
+    cv2.imshow('RGB', kinect_color_frame)
     cv2.imshow('Depth', depth_frame / 2048)  # simple visualization
+    cv2.imshow('Detections', detection_frame)
     cv2.imshow('Video', frame)
-    depth = get_depth_at_point(depth_frame, 223, 313)
     
-    # print(depth)
+    left_depth = get_depth_at_point(depth_frame, 485, 367)
+    right_depth = get_depth_at_point(depth_frame, 243,385)
     
-    if 890 > depth > 870:
+    
+    # print(left_depth)
+    print(right_depth)
+    
+    if  920 > right_depth > 891:
         print("no drawer open")
-    if 871 > depth > 850:
-        print("bottom drawer open")
-    if 851 > depth > 830:
-        print("middle drawer open")
-    if 831 > depth > 800:
-        print("top drawer open")
+    if 890 > right_depth > 861:
+        print("sanding and scales")
+    if 860 > right_depth > 841:
+        print("clamps")
+    if 840 > right_depth > 826:
+        print("electrical and hot glue")
+    if 825 > right_depth > 801:
+        print("sockets and allen keys")
+    if 800 > right_depth > 780:
+        print("drivers and bits")
+        
+    if  920 > left_depth > 891:
+        print("no drawer open")
+    if 890 > left_depth > 861:
+        print("drill and dremmel")
+    if 860 > left_depth > 841:
+        print("measruing")
+    if 840 > left_depth > 826:
+        print("hammers")
+    if 825 > left_depth > 801:
+        print("pliers and cutters")
+    if 800 > left_depth > 780:
+        print("drivers and bits")
 
     if cv2.waitKey(1) & 0xFF == 27:
         break
 
 cv2.destroyAllWindows()
-
