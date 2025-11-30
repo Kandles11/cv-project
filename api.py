@@ -2,7 +2,7 @@
 FastAPI application for serving inventory state, event logs, and annotated images.
 """
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import cv2
@@ -11,7 +11,7 @@ import io
 from PIL import Image
 import base64
 
-from tool_state import InventoryStateManager, User, InventoryUpdateLogEntry
+from tool_state import InventoryStateManager
 
 # Create shared state manager instance
 # This will be imported and used by main.py
@@ -68,22 +68,13 @@ async def get_events():
     for event in events:
         # For now, we need to extract tool info from the tool string format
         # Tool format in state is: f"{class_name} {tracker_id}"
-        # TODO: When tool information is added to InventoryUpdateLogEntry, use it here
-        tool_info = {
-            "id": "unknown",
-            "name": "Unknown Tool",
-            "description": "Tool information not yet implemented",
-            "imageUrl": "https://picsum.photos/seed/tool/500",
-            "type": "Unknown",
-            "cost": 0.0
-        }
         
         formatted_event = {
             "id": event["id"],
             "timestamp": event["timestamp"],
             "type": event["type"],
             "user": event["user"],
-            "tool": tool_info,
+            "tool": event["tool"],
             "eventImageUrl": event["eventImageUrl"]
         }
         formatted_events.append(formatted_event)
