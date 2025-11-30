@@ -1,7 +1,7 @@
 from typing import Counter, Literal, TypedDict
 from uuid import uuid4
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class User:
@@ -40,8 +40,8 @@ class DrawerOpenState:
     last_detected_user: User | None = None
     time_of_drawer_open: datetime = datetime.now()
 
-    initial_tool_detection_state: set[str] = set()
-    current_tool_detection_state: set[str] = set()
+    initial_tool_detection_state: set[str] = field(default_factory=set)
+    current_tool_detection_state: set[str] = field(default_factory=set)
 
     state: Literal["drawer_open"] = "drawer_open"
 
