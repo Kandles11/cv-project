@@ -3,10 +3,41 @@ import cv2
 import numpy as np
 import face_recognition
 from ultralytics import YOLO
+import supervision as sv
 
+from tool_state import InventoryStateManager
 model = YOLO("tools_medium_480.pt")
+tracker = sv.ByteTrack(track_activation_threshold=0.2, minimum_matching_threshold=0.7, lost_track_buffer=90)
+box_annotator = sv.BoxAnnotator()
+label_annotator = sv.LabelAnnotator()
+trace_annotator = sv.TraceAnnotator()
 
 video_capture = cv2.VideoCapture(1)
+
+"""
+# key is the class, value is a dict where the key is the drawer identifier and the value is the count of that class in that drawer
+current_inventory: dict[str, dict[str, int]] = {}
+
+# using existing face recognition model to detect the user
+currently_detected_user: str | None
+
+event_log: list of Events that matches the schema in audit-frontend/src/data/dummy.auditlogs.ts as closely as possible
+
+global_states:
+  - no_drawer_open
+  - drawer_open:
+        drawer_identifier
+        tool_detection_state: 
+            - drawer_opened_waiting_for_initial_tool_detection: # getting initial drawer state on open so we can diff against the state when the drawer closes. for this, we should wait for the list of tools to be stable for 1 second before auto transitioning to drawer_opened_tools_detected state.
+                initial_tool_detection_state: set of f"{class_name} {tracker_id}"
+            - drawer_opened_watching_for_tool_checkin_or_checkout # now people can add or remove tools to the drawer. need to have some heuristic for this to handle the drawer closing, so that tool_detection_state is not updated when the drawer is closing since that could incorrectly indicate that all the tools were removed.
+                tool_detection_state: set of f"{class_name} {tracker_id}"
+
+side effects:
+on transition from drawer_opened_tools_detected to no_drawer_open, diff the initial_tool_detection_state and the tool_detection_state to get the list of tools that were added or removed. then "commit" the new state to the current inventory with the new state. when w
+"""
+
+state_manager = InventoryStateManager()
 
 clicked_point = None
 
@@ -60,6 +91,28 @@ def get_depth_at_point(frame, x: int, y:int):
 
 cv2.namedWindow("Depth")
 cv2.setMouseCallback("Depth", on_mouse)
+
+def object_tracking_annotated_frame(frame: np.ndarray):
+    results = model(frame)[0]
+    detections = sv.Detections.from_ultralytics(results)
+    detections = tracker.update_with_detections(detections)
+
+    if "class_name" not in detections.data:
+        return frame
+        
+    labels = [
+        f"#{tracker_id} {class_name}"
+        for class_name, tracker_id
+        in zip(detections.data["class_name"], detections.tracker_id)
+    ]
+
+    annotated_frame = box_annotator.annotate(
+        frame.copy(), detections=detections)
+    annotated_frame = label_annotator.annotate(
+        annotated_frame, detections=detections, labels=labels)
+    return trace_annotator.annotate(
+        annotated_frame, detections=detections)
+
 
 while True:
     depth_frame = get_depth_frame()
@@ -116,7 +169,7 @@ while True:
 
     cv2.imshow('RGB', kinect_color_frame)
     cv2.imshow('Depth', depth_frame / 2048)  # simple visualization
-    cv2.imshow('Detections', detection_frame)
+    cv2.imshow('Detections', object_tracking_annotated_frame(kinect_color_frame.copy()))
     cv2.imshow('Video', frame)
     
     left_depth = get_depth_at_point(depth_frame, 485, 367)
