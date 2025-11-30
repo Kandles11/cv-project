@@ -191,15 +191,20 @@ class InventoryStateManager:
 
         checked_out_tools = save_state.initial_tool_detection_state - tool_detection_state_to_use
         returned_tools = tool_detection_state_to_use - save_state.initial_tool_detection_state
+        should_do_check_out = len(checked_out_tools) > 0
         if DO_UPDATE:
-            for tool in checked_out_tools:
-                tool = hardcode_tool
-                self.current_inventory[tool][save_state.drawer_identifier] -= 1
-                self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
-            for tool in returned_tools:
-                tool = hardcode_tool
-                self.current_inventory[tool][save_state.drawer_identifier] += 1
-                self._generate_event_log_entry(event_type="tool_checkin", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
+            if should_do_check_out:
+                for tool in checked_out_tools:
+                    tool = hardcode_tool
+                    self.current_inventory[tool][save_state.drawer_identifier] -= 1
+                    self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
+                    break
+            else:
+                for tool in returned_tools:
+                    tool = hardcode_tool
+                    self.current_inventory[tool][save_state.drawer_identifier] += 1
+                    self._generate_event_log_entry(event_type="tool_checkin", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
+                    break
 
         print(f"prev state: {save_state}")
         print(f"new state: {self.tool_detection_state}")
