@@ -4,9 +4,11 @@ import numpy as np
 import face_recognition
 from ultralytics import YOLO
 import supervision as sv
+import threading
+import uvicorn
 
 from tool_state import InventoryStateManager
-from api import state_manager, update_annotated_frame
+from api import state_manager, update_annotated_frame, app
 
 model = YOLO("tools_medium_480.pt")
 tracker = sv.ByteTrack(track_activation_threshold=0.2, minimum_matching_threshold=0.7, lost_track_buffer=90)
@@ -93,6 +95,16 @@ def get_depth_at_point(frame, x: int, y:int):
 
 cv2.namedWindow("Depth")
 cv2.setMouseCallback("Depth", on_mouse)
+
+def run_api_server():
+    """Run the FastAPI server in a background thread"""
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+# Start the API server in a background thread
+print("Starting API server on http://0.0.0.0:8000")
+api_thread = threading.Thread(target=run_api_server, daemon=True)
+api_thread.start()
+print("API server started. Camera loop starting...")
 
 def object_tracking_annotated_frame(frame: np.ndarray):
     results = model(frame)[0]

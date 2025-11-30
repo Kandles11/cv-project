@@ -124,9 +124,21 @@ The `main.py` script imports the shared `state_manager` from `api.py`:
 - Updates annotated frames for the API
 - Both processes share the same state
 
-## Running Both Processes
+## Running the Application
 
-To run both the main CV loop and the API server:
+The application can now be started with a single command. The `main.py` script automatically starts the API server in a background thread:
+
+```bash
+python main.py
+```
+
+This will:
+1. Start the FastAPI server on `http://0.0.0.0:8000` in a background thread
+2. Start the camera loop for face recognition and tool detection
+
+**Alternative: Run API Server Separately**
+
+If you prefer to run the API server separately (useful for development with auto-reload):
 
 **Terminal 1 - API Server:**
 ```bash
@@ -137,6 +149,8 @@ uvicorn api:app --reload --host 0.0.0.0 --port 8000
 ```bash
 python main.py
 ```
+
+Note: If you run them separately, make sure to comment out the API server startup code in `main.py` to avoid port conflicts.
 
 ## CORS
 
