@@ -2,6 +2,7 @@ from typing import Counter, Literal, TypedDict
 from uuid import uuid4
 from datetime import datetime
 from dataclasses import dataclass, field
+from collections import defaultdict
 
 @dataclass
 class User:
