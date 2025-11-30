@@ -135,7 +135,7 @@ def object_tracking_annotated_frame(frame: np.ndarray):
     labels = [
         f"#{tracker_id} {class_name}"
         for class_name, tracker_id
-        in zip(detections.data["class_name"], detections.tracker_id or [])
+        in zip(detections.data["class_name"], detections.tracker_id)
     ]
 
     annotated_frame = box_annotator.annotate(
