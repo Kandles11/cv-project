@@ -103,9 +103,9 @@ class InventoryStateManager:
 
     def transition_to_drawer_open(self, drawer_identifier: str):
         if isinstance(self.tool_detection_state, NoDrawerOpenState):
-            print("Transitioning to drawer open from no drawer open")
+            print("Transitioning from no drawer open to drawer open")
         else:
-            print(f"Transitioning to drawer open from drawer open. This means that we are still waiting for the initial tool detection to complete. In ${MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT}ms, we'll start watching for tool checkin or checkout, so you can take or return tools.")
+            print(f"Transitioning from drawer open to drawer open. This means that we are still waiting for the initial tool detection to complete. In ${MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT}ms, we'll start watching for tool checkin or checkout, so you can take or return tools.")
 
         new_state = DrawerOpenState(drawer_identifier=drawer_identifier)
         print(f"prev state: {self.tool_detection_state}")
@@ -114,7 +114,7 @@ class InventoryStateManager:
 
     def transition_to_no_drawer_open(self):
         assert isinstance(self.tool_detection_state, DrawerOpenState)
-        print("Transitioning to no drawer open from drawer open.")
+        print("Transitioning from drawer open to no drawer open.")
 
         save_state: DrawerOpenState = self.tool_detection_state
         self.tool_detection_state = NoDrawerOpenState()
