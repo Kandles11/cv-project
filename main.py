@@ -11,7 +11,7 @@ from api import state_manager, update_annotated_frame, app
 
 from tool_state import InventoryStateManager, DrawerOpenState
 model = YOLO("tools_medium_480.pt")
-tracker = sv.ByteTrack(track_activation_threshold=0.2, minimum_matching_threshold=0.7, lost_track_buffer=90)
+tracker = sv.ByteTrack(track_activation_threshold=0.3, minimum_matching_threshold=0.5, lost_track_buffer=90)
 box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 trace_annotator = sv.TraceAnnotator()
@@ -70,7 +70,7 @@ def get_depth_frame():
     frame, _ = freenect.sync_get_depth()
     return frame
 
-def get_depth_at_point(frame, x: int, y: int, max_variance: int = 100):
+def get_depth_at_point(frame, x: int, y: int, max_variance: int = 150):
     """
     Get average depth value in a 50px square around the given point.
     Samples a 50x50 pixel region centered on (x, y).
