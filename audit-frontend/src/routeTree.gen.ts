@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuditLogsRouteImport } from './routes/audit-logs'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiGetAnnotatedLiveFrameRouteImport } from './routes/api/get-annotated-live-frame'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
@@ -31,6 +32,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGetAnnotatedLiveFrameRoute =
+  ApiGetAnnotatedLiveFrameRouteImport.update({
+    id: '/api/get-annotated-live-frame',
+    path: '/api/get-annotated-live-frame',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
   id: '/demo/start/server-funcs',
   path: '/demo/start/server-funcs',
@@ -80,6 +87,7 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
+  '/api/get-annotated-live-frame': typeof ApiGetAnnotatedLiveFrameRoute
   '/api/audit-logs/events': typeof ApiAuditLogsEventsRoute
   '/api/audit-logs/overview': typeof ApiAuditLogsOverviewRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -93,6 +101,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
+  '/api/get-annotated-live-frame': typeof ApiGetAnnotatedLiveFrameRoute
   '/api/audit-logs/events': typeof ApiAuditLogsEventsRoute
   '/api/audit-logs/overview': typeof ApiAuditLogsOverviewRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -107,6 +116,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
+  '/api/get-annotated-live-frame': typeof ApiGetAnnotatedLiveFrameRoute
   '/api/audit-logs/events': typeof ApiAuditLogsEventsRoute
   '/api/audit-logs/overview': typeof ApiAuditLogsOverviewRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audit-logs'
+    | '/api/get-annotated-live-frame'
     | '/api/audit-logs/events'
     | '/api/audit-logs/overview'
     | '/demo/api/names'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audit-logs'
+    | '/api/get-annotated-live-frame'
     | '/api/audit-logs/events'
     | '/api/audit-logs/overview'
     | '/demo/api/names'
@@ -148,6 +160,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/audit-logs'
+    | '/api/get-annotated-live-frame'
     | '/api/audit-logs/events'
     | '/api/audit-logs/overview'
     | '/demo/api/names'
@@ -162,6 +175,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditLogsRoute: typeof AuditLogsRoute
+  ApiGetAnnotatedLiveFrameRoute: typeof ApiGetAnnotatedLiveFrameRoute
   ApiAuditLogsEventsRoute: typeof ApiAuditLogsEventsRoute
   ApiAuditLogsOverviewRoute: typeof ApiAuditLogsOverviewRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
@@ -187,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/get-annotated-live-frame': {
+      id: '/api/get-annotated-live-frame'
+      path: '/api/get-annotated-live-frame'
+      fullPath: '/api/get-annotated-live-frame'
+      preLoaderRoute: typeof ApiGetAnnotatedLiveFrameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/server-funcs': {
@@ -258,6 +279,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditLogsRoute: AuditLogsRoute,
+  ApiGetAnnotatedLiveFrameRoute: ApiGetAnnotatedLiveFrameRoute,
   ApiAuditLogsEventsRoute: ApiAuditLogsEventsRoute,
   ApiAuditLogsOverviewRoute: ApiAuditLogsOverviewRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
