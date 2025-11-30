@@ -16,7 +16,7 @@ box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 trace_annotator = sv.TraceAnnotator()
 
-video_capture = cv2.VideoCapture(0)
+video_capture = cv2.VideoCapture(1)
 
 """
 # key is the class, value is a dict where the key is the drawer identifier and the value is the count of that class in that drawer
@@ -56,8 +56,11 @@ print("setting up facial encodings")
 mason_image = face_recognition.load_image_file("faces/mason.png")
 mason_face_encoding = face_recognition.face_encodings(mason_image)[0]
 
-kynlee_image = face_recognition.load_image_file("faces/kynlee.png")
-kynlee_face_encoding = face_recognition.face_encodings(kynlee_image)[0]
+gabriel_image = face_recognition.load_image_file("faces/gabe.jpg")
+gabriel_face_encoding = face_recognition.face_encodings(gabriel_image)[0]
+
+colin_image = face_recognition.load_image_file("faces/colin.jpg")
+colin_face_encoding = face_recognition.face_encodings(colin_image)[0]
 
 # carrie_image = face_recognition.load_image_file("faces/carrie.png")
 # carrie_face_encoding = face_recognition.face_encodings(carrie_image)[0]
@@ -69,13 +72,15 @@ print("we have finished encodings")
 
 known_face_encodings = [
     mason_face_encoding,
-    kynlee_face_encoding,
+    gabriel_face_encoding,
+    colin_face_encoding,
     # carrie_face_encoding,
     # mike_face_encoding
 ]
 known_face_names = [
     "Mason Thomas - mgt210000",
-    "Kynlee Thomas",
+    "Gabriel Burbach - gmb190004",
+    "Colin Wong - cw190000",
     # "Carrie Thomas",
     # "Michael Thomas"
 ]
