@@ -1,14 +1,20 @@
 from typing import Literal, TypedDict
-
-
-class InventoryUpdateLogEntry(TypedDict):
-    pass
-
+from uuid import uuid4
+from datetime import datetime
 class User(TypedDict):
     id: str
     name: str
     email: str
-    image_url: str
+    imageUrl: str
+
+class InventoryUpdateLogEntry(TypedDict):
+    id: str
+    timestamp: int
+    type: Literal["tool_checkin", "tool_checkout"]
+    user: User
+    # TODO: tool...
+    # tool: Tool
+    eventImageUrl: str
 
 class NoDrawerOpenState(TypedDict):
     state: Literal["no_drawer_open"]
@@ -49,11 +55,30 @@ class InventoryStateManager:
             id=id,
             name=name,
             email=f"{id}@utdallas.edu",
-            image_url=f"https://picsum.photos/seed/{id}/500"
+            imageUrl=f"https://picsum.photos/seed/{id}/500"
         )
 
     def update_currently_detected_user(self, user: User):
         self.currently_detected_user = user
 
     def transition_to_drawer_open(self, drawer_identifier: str):
+        assert self.tool_detection_state == NoDrawerOpenState(state="no_drawer_open")
+
         self.tool_detection_state = DrawerOpenState(state="drawer_open", drawer_identifier=drawer_identifier, tool_detection_state="waiting_for_initial_tool_detection", initial_tool_detection_state=set(), current_tool_detection_state=set())
+
+    def transition_to_no_drawer_open(self):
+        assert self.tool_detection_state == DrawerOpenState(state="drawer_open")
+
+        diff = self.tool_detection_state["initial_tool_detection_state"] - self.tool_detection_state["current_tool_detection_state"]
+        for tool in diff:
+            now = datetime.now()
+            timestamp = int(now.timestamp())
+            self.event_log.append(InventoryUpdateLogEntry(
+                id=str(uuid4()),
+                timestamp=timestamp,
+                type="tool_checkout",
+                user=self.currently_detected_user,
+                # tool=tool,
+                eventImageUrl=f"https://picsum.photos/seed/{timestamp}/500"
+            ))
+        self.tool_detection_state = NoDrawerOpenState(state="no_drawer_open")
