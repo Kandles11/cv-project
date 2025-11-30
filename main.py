@@ -193,14 +193,9 @@ while True:
     kinect_color_frame = get_video()
     ret, frame = video_capture.read()
     
-    results = model.predict(kinect_color_frame, verbose=False)
-    detection_frame = kinect_color_frame.copy()
-    for result in results:
-        detection_frame = result.plot(img=detection_frame)
-    
     # Get tracked detections for tool state management
-    # tracked_results = model(kinect_color_frame)[0]
-    tracked_detections = sv.Detections.from_ultralytics(results)
+    tracked_results = model(kinect_color_frame, verbose=False)[0]
+    tracked_detections = sv.Detections.from_ultralytics(tracked_results)
     tracked_detections = tracker.update_with_detections(tracked_detections)
     
     # Extract tool detections in format "{class_name} {tracker_id}"

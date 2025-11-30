@@ -33,7 +33,7 @@ class InventoryUpdateLogEntry(TypedDict):
 class NoDrawerOpenState:
     state: Literal["no_drawer_open"] = "no_drawer_open"
 
-MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT = 2000
+MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT = 1000
 
 @dataclass
 class DrawerOpenState:
