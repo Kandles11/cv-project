@@ -33,13 +33,13 @@ class InventoryUpdateLogEntry(TypedDict):
 class NoDrawerOpenState:
     state: Literal["no_drawer_open"] = "no_drawer_open"
 
-MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT = 500
+MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT = 2000
 
 @dataclass
 class DrawerOpenState:
     drawer_identifier: str
     last_detected_user: User | None = None
-    time_of_drawer_open: datetime = datetime.now()
+    time_of_drawer_open: datetime = field(default_factory=datetime.now)
 
     initial_tool_detection_state: set[str] = field(default_factory=set)
     current_tool_detection_state: set[str] = field(default_factory=set)

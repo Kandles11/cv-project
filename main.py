@@ -70,10 +70,52 @@ def get_depth_frame():
     frame, _ = freenect.sync_get_depth()
     return frame
 
-def get_depth_at_point(frame, x: int, y:int):
+def get_depth_at_point(frame, x: int, y: int, max_variance: int = 100):
+    """
+    Get average depth value in a 50px square around the given point.
+    Samples a 50x50 pixel region centered on (x, y).
+    Filters out readings with high variance (mixed depths like drawer + floor).
     
-    depth = frame[y, x]
-    return depth
+    Args:
+        frame: Depth frame
+        x: X coordinate
+        y: Y coordinate
+        max_variance: Maximum allowed variance (default 100). Higher = more tolerance.
+    
+    Returns:
+        Average depth value, or None if variance is too high (unreliable reading)
+    """
+    # 50px square means 25px radius on each side
+    half_size = 15
+    
+    # Calculate bounds, ensuring we don't go outside the frame
+    y_start = max(0, y - half_size)
+    y_end = min(frame.shape[0], y + half_size)
+    x_start = max(0, x - half_size)
+    x_end = min(frame.shape[1], x + half_size)
+    
+    # Extract the region of interest
+    roi = frame[y_start:y_end, x_start:x_end]
+    
+    # Calculate average depth, ignoring zero values (invalid depth readings)
+    # Zero values typically indicate areas where depth couldn't be measured
+    valid_depths = roi[roi > 0]
+    
+    if len(valid_depths) == 0:
+        # If no valid depths, return None to indicate unreliable reading
+        return None
+    
+    # Calculate variance to check if depths are uniform
+    # High variance indicates mixed depths (e.g., drawer partially open with floor visible)
+    variance = np.var(valid_depths)
+    
+    if variance > max_variance:
+        # Variance too high - likely mixing drawer and floor/background
+        # Return None to indicate unreliable reading
+        return None
+    
+    # Return the average of valid depth values (variance is acceptable)
+    return int(np.mean(valid_depths))
 
 def get_drawer_identifier_from_depth(left_depth: int, right_depth: int) -> str | None:
     """
@@ -93,9 +135,9 @@ def get_drawer_identifier_from_depth(left_depth: int, right_depth: int) -> str |
         return "drivers and bits"
     
     # Check left drawer
-    if 890 > left_depth > 861:
+    if 890 > left_depth > 851:
         return "drill and dremmel"
-    if 860 > left_depth > 841:
+    if 850 > left_depth > 841:
         return "measruing"
     if 840 > left_depth > 826:
         return "hammers"
@@ -151,14 +193,14 @@ while True:
     kinect_color_frame = get_video()
     ret, frame = video_capture.read()
     
-    results = model.predict(kinect_color_frame)
+    results = model.predict(kinect_color_frame, verbose=False)
     detection_frame = kinect_color_frame.copy()
     for result in results:
         detection_frame = result.plot(img=detection_frame)
     
     # Get tracked detections for tool state management
-    tracked_results = model(kinect_color_frame)[0]
-    tracked_detections = sv.Detections.from_ultralytics(tracked_results)
+    # tracked_results = model(kinect_color_frame)[0]
+    tracked_detections = sv.Detections.from_ultralytics(results)
     tracked_detections = tracker.update_with_detections(tracked_detections)
     
     # Extract tool detections in format "{class_name} {tracker_id}"
@@ -185,8 +227,11 @@ while True:
     if clicked_point is not None:
         cx, cy = clicked_point
         if 0 <= cx < depth_frame.shape[1] and 0 <= cy < depth_frame.shape[0]:
-            depth_value = depth_frame[cy, cx]
-            print(f"Depth at {clicked_point}: {depth_value}")
+            depth_value = get_depth_at_point(depth_frame, cx, cy)
+            if depth_value is not None:
+                print(f"Depth at {clicked_point}: {depth_value} (averaged over 50px square)")
+            else:
+                print(f"Depth at {clicked_point}: Unreliable (high variance - likely mixed depths)")
         clicked_point = None
     
     face_locations = face_recognition.face_locations(small)
@@ -238,13 +283,20 @@ while True:
     # Update the annotated frame for the API
     update_annotated_frame(annotated_frame)
     
+    cv2.imshow('Video', frame)
     cv2.imshow('RGB', kinect_color_frame)
     cv2.imshow('Depth', depth_frame / 2048)  # simple visualization
     cv2.imshow('Detections', annotated_frame)
-    cv2.imshow('Video', frame)
     
-    left_depth = get_depth_at_point(depth_frame, 485, 367)
-    right_depth = get_depth_at_point(depth_frame, 243,385)
+    left_depth = get_depth_at_point(depth_frame, 500, 366)
+    right_depth = get_depth_at_point(depth_frame, 243, 371)
+    
+    # If depth readings are unreliable (None), treat as no drawer open
+    # This happens when variance is too high (e.g., drawer partially open mixing with floor)
+    if left_depth is None:
+        left_depth = 1000  # Default to "no drawer open" depth
+    if right_depth is None:
+        right_depth = 1000  # Default to "no drawer open" depth
     
     # Get current drawer identifier from depth
     current_drawer_identifier = get_drawer_identifier_from_depth(left_depth, right_depth)
@@ -265,8 +317,7 @@ while True:
         previous_drawer_identifier = current_drawer_identifier
     
     # Debug output (keeping original print statements for reference)
-    # print(left_depth)
-    print(right_depth)
+    print(left_depth, right_depth, end=" - ")
     
     if current_drawer_identifier is None:
         print("no drawer open")
