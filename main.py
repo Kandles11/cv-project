@@ -57,7 +57,7 @@ known_face_encodings = [
 known_face_names = [
     "Mason Thomas - mgt210000",
     "Gabriel Burbach - gmb190004",
-    "Colin Wong - cw190000",
+    "Colin Wong - csw220002",
     # "Carrie Thomas",
     # "Michael Thomas"
 ]
@@ -219,6 +219,7 @@ while True:
             # Update state manager with detected user
             user = InventoryStateManager.make_user_from_string(name)
             state_manager.update_currently_detected_user(user)
+            name = user.name
 
         # Draw a box around the face
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
