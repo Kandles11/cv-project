@@ -155,7 +155,7 @@ function AuditLogsDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Wrench className="h-5 w-5 text-cyan-400" />
+                <Wrench className="h-5 w-5 text-brand" />
                 Total Tools
               </CardTitle>
               <CardDescription>Total number of tools in the system</CardDescription>
@@ -168,7 +168,7 @@ function AuditLogsDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-cyan-400" />
+                <Users className="h-5 w-5 text-brand" />
                 Active Checkouts
               </CardTitle>
               <CardDescription>Users with checked out tools</CardDescription>
@@ -183,7 +183,7 @@ function AuditLogsDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-cyan-400" />
+                <Clock className="h-5 w-5 text-brand" />
                 Unseen Tools
               </CardTitle>
               <CardDescription>Tools unseen in the last 7 days</CardDescription>
