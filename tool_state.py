@@ -4,6 +4,11 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from collections import defaultdict
 
+DRAWER_TO_TOOL_MAP = {
+    "drivers and bits": "ifixit",
+    "clamps": "clamp"
+}
+
 @dataclass
 class User:
     id: str
@@ -73,7 +78,7 @@ class DrawerOpenState:
             if timestamp > cutoff_time
         ]
     
-    def get_tool_detection_state_2_seconds_ago(self) -> tuple[set[str], str]:
+    def _get_tool_detection_state_2_seconds_ago(self) -> tuple[set[str], str]:
         """
         Get the tool detection state from approximately 2 seconds ago.
         Falls back to the most recent non-empty snapshot, or current state if no snapshots exist.
@@ -171,20 +176,30 @@ class InventoryStateManager:
         assert isinstance(self.tool_detection_state, DrawerOpenState)
         print("Transitioning from drawer open to no drawer open.")
 
+
+        DO_UPDATE = True
+        if self.tool_detection_state.drawer_identifier not in DRAWER_TO_TOOL_MAP:
+            DO_UPDATE = False
+            print("skipping inventory update, drawer not in DRAWER_TO_TOOL_MAP")
+        hardcode_tool = DRAWER_TO_TOOL_MAP[self.tool_detection_state.drawer_identifier]
+
         save_state: DrawerOpenState = self.tool_detection_state
         self.tool_detection_state = NoDrawerOpenState()
 
         # Use 2-second-old snapshot instead of current (potentially empty) state
-        tool_detection_state_to_use, frame_base64 = save_state.get_tool_detection_state_2_seconds_ago()
+        tool_detection_state_to_use, frame_base64 = save_state._get_tool_detection_state_2_seconds_ago()
 
         checked_out_tools = save_state.initial_tool_detection_state - tool_detection_state_to_use
         returned_tools = tool_detection_state_to_use - save_state.initial_tool_detection_state
-        for tool in checked_out_tools:
-            self.current_inventory[tool][save_state.drawer_identifier] -= 1
-            self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
-        for tool in returned_tools:
-            self.current_inventory[tool][save_state.drawer_identifier] += 1
-            self._generate_event_log_entry(event_type="tool_checkin", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
+        if DO_UPDATE:
+            for tool in checked_out_tools:
+                tool = hardcode_tool
+                self.current_inventory[tool][save_state.drawer_identifier] -= 1
+                self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
+            for tool in returned_tools:
+                tool = hardcode_tool
+                self.current_inventory[tool][save_state.drawer_identifier] += 1
+                self._generate_event_log_entry(event_type="tool_checkin", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
 
         print(f"prev state: {save_state}")
         print(f"new state: {self.tool_detection_state}")
