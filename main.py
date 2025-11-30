@@ -4,7 +4,7 @@ import numpy as np
 import face_recognition
 from ultralytics import YOLO
 
-model = YOLO("tools.pt")
+model = YOLO("tools_med.pt")
 
 video_capture = cv2.VideoCapture(1)
 
@@ -66,7 +66,7 @@ while True:
     kinect_color_frame = get_video()
     ret, frame = video_capture.read()
     
-    results = model.predict(kinect_color_frame, imgsz=(480, 640))
+    results = model.predict(kinect_color_frame)
     detection_frame = kinect_color_frame.copy()
     for result in results:
         detection_frame = result.plot(img=detection_frame)
