@@ -61,7 +61,7 @@ class InventoryStateManager:
     """
     Current inventory stores the what tools are stored in what drawers. The key is the tool class (from the model). The value at that key is another dict, where the key is the drawer identifier, and the value is the count of that class in that drawer.
     """
-    current_inventory: dict[str, Counter[str]] = field(default_factory=defaultdict(Counter))
+    current_inventory: dict[str, Counter[str]] = defaultdict(Counter)
 
     """
     Stores the user that is currently being detected by the facial detection task.
@@ -71,7 +71,7 @@ class InventoryStateManager:
     """
     Event log stores the history of inventory updates.
     """
-    event_log: list[InventoryUpdateLogEntry] = field(default_factory=list)
+    event_log: list[InventoryUpdateLogEntry] = []
 
 
     tool_detection_state: NoDrawerOpenState | DrawerOpenState = NoDrawerOpenState(state="no_drawer_open")
