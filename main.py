@@ -6,13 +6,15 @@ from ultralytics import YOLO
 import supervision as sv
 
 from tool_state import InventoryStateManager
+from api import state_manager, update_annotated_frame
+
 model = YOLO("tools_medium_480.pt")
 tracker = sv.ByteTrack(track_activation_threshold=0.2, minimum_matching_threshold=0.7, lost_track_buffer=90)
 box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 trace_annotator = sv.TraceAnnotator()
 
-video_capture = cv2.VideoCapture(1)
+video_capture = cv2.VideoCapture(0)
 
 """
 # key is the class, value is a dict where the key is the drawer identifier and the value is the count of that class in that drawer
@@ -37,7 +39,7 @@ side effects:
 on transition from drawer_opened_tools_detected to no_drawer_open, diff the initial_tool_detection_state and the tool_detection_state to get the list of tools that were added or removed. then "commit" the new state to the current inventory with the new state. when w
 """
 
-state_manager = InventoryStateManager()
+# state_manager is now imported from api.py to share state with FastAPI
 
 clicked_point = None
 
@@ -158,6 +160,9 @@ while True:
         best_match_index = np.argmin(face_distances)
         if matches[best_match_index]:
             name = known_face_names[best_match_index]
+            # Update state manager with detected user
+            user = InventoryStateManager.make_user_from_string(name)
+            state_manager.update_currently_detected_user(user)
 
         # Draw a box around the face
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
@@ -167,9 +172,15 @@ while True:
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
+    # Get annotated frame with object tracking
+    annotated_frame = object_tracking_annotated_frame(kinect_color_frame.copy())
+    
+    # Update the annotated frame for the API
+    update_annotated_frame(annotated_frame)
+    
     cv2.imshow('RGB', kinect_color_frame)
     cv2.imshow('Depth', depth_frame / 2048)  # simple visualization
-    cv2.imshow('Detections', object_tracking_annotated_frame(kinect_color_frame.copy()))
+    cv2.imshow('Detections', annotated_frame)
     cv2.imshow('Video', frame)
     
     left_depth = get_depth_at_point(depth_frame, 485, 367)

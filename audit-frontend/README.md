@@ -2,12 +2,29 @@ Welcome to your new TanStack app!
 
 # Getting Started
 
+## Prerequisites
+
+1. Make sure the FastAPI backend is running (see `../API_README.md`)
+   ```bash
+   # In the cv-project directory
+   uvicorn api:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+2. (Optional) Create a `.env` file to configure the FastAPI URL:
+   ```bash
+   FASTAPI_URL=http://localhost:8000
+   ```
+
+## Running the Frontend
+
 To run this application:
 
 ```bash
 pnpm install
-pnpm start
+pnpm dev
 ```
+
+The frontend will start on `http://localhost:3000` and will fetch data from the FastAPI backend.
 
 # Building For Production
 
