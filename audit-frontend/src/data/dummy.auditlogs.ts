@@ -7,7 +7,7 @@ export type Event = {
         name: string;
         email: string;
         imageUrl: string
-    }
+    } | null,
     tool: {
         id: string;
         name: string;

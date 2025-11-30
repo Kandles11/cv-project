@@ -100,8 +100,8 @@ function AuditLogsDashboard() {
       if (userSearch) {
         const searchLower = userSearch.toLowerCase()
         const matchesUser =
-          event.user.name.toLowerCase().includes(searchLower) ||
-          event.user.email.toLowerCase().includes(searchLower)
+          event.user?.name.toLowerCase().includes(searchLower) ||
+          event.user?.email.toLowerCase().includes(searchLower)
         if (!matchesUser) {
           return false
         }
@@ -298,19 +298,15 @@ function AuditLogsDashboard() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={event.user.imageUrl} alt={event.user.name} />
+                            {event.user && <AvatarImage src={event.user.imageUrl} alt={event.user.name} />}
                             <AvatarFallback>
-                              {event.user.name
-                                .split(' ')
-                                .map((n) => n[0])
-                                .join('')
-                                .toUpperCase()}
+                              ?
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{event.user.name}</div>
+                            <div className="font-medium">{event.user?.name ?? "Unknown User"}</div>
                             <div className="text-sm text-muted-foreground">
-                              {event.user.email}
+                              {event.user?.email ?? "Unknown Email"}
                             </div>
                           </div>
                         </div>
