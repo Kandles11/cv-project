@@ -37,7 +37,8 @@ import {
 } from '@/components/ui/pagination'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { SystemOverview, Event } from '@/data/dummy.auditlogs'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import type { SystemOverview, Event } from '@/data/dummy.auditlogs'
 
 
 export const Route = createFileRoute('/audit-logs')({
@@ -58,6 +59,9 @@ function AuditLogsDashboard() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
+
+  // Image viewer state
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -320,11 +324,18 @@ function AuditLogsDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <img
-                          src={event.eventImageUrl}
-                          alt={`Event ${event.id}`}
-                          className="h-12 w-12 object-cover rounded"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageUrl(event.eventImageUrl)}
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          aria-label={`View larger image for event ${event.id}`}
+                        >
+                          <img
+                            src={event.eventImageUrl}
+                            alt={`Event ${event.id}`}
+                            className="h-12 w-12 object-cover rounded"
+                          />
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -411,6 +422,19 @@ function AuditLogsDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Image Viewer Dialog */}
+      <Dialog open={selectedImageUrl !== null} onOpenChange={(open) => !open && setSelectedImageUrl(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] p-0">
+          {selectedImageUrl && (
+            <img
+              src={selectedImageUrl}
+              alt="Event"
+              className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
