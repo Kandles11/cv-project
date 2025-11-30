@@ -11,12 +11,12 @@ from api import state_manager, update_annotated_frame, app
 
 from tool_state import InventoryStateManager, DrawerOpenState
 model = YOLO("tools_medium_480.pt")
-tracker = sv.ByteTrack(track_activation_threshold=0.3, minimum_matching_threshold=0.5, lost_track_buffer=90)
+tracker = sv.ByteTrack(track_activation_threshold=0.3, minimum_matching_threshold=0.2, lost_track_buffer=90)
 box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 trace_annotator = sv.TraceAnnotator()
 
-video_capture = cv2.VideoCapture(1)
+video_capture = cv2.VideoCapture(0)
 
 
 clicked_point = None
@@ -192,6 +192,8 @@ while True:
     depth_frame = get_depth_frame()
     kinect_color_frame = get_video()
     ret, frame = video_capture.read()
+    if not ret:
+        continue
     
     # Get tracked detections for tool state management
     tracked_results = model(kinect_color_frame, verbose=False)[0]

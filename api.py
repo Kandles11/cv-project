@@ -108,6 +108,8 @@ async def get_overview():
     # that don't have a corresponding "tool_checkin"
     checked_out_tools = {}
     for event in state_manager.event_log:
+        if event["user"] is None:
+            continue
         if event["type"] == "tool_checkout":
             # For now, we'll use a simple count
             # TODO: Track specific tools when tool information is added
