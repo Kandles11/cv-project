@@ -1,6 +1,6 @@
 from typing import Counter, Literal, TypedDict
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from collections import defaultdict
 
@@ -43,6 +43,10 @@ class DrawerOpenState:
 
     initial_tool_detection_state: set[str] = field(default_factory=set)
     current_tool_detection_state: set[str] = field(default_factory=set)
+    
+    # Buffer to store timestamped snapshots of current_tool_detection_state
+    # Each entry is (timestamp, tool_detection_state_copy)
+    tool_detection_state_history: list[tuple[datetime, set[str]]] = field(default_factory=list)
 
     state: Literal["drawer_open"] = "drawer_open"
 
@@ -55,6 +59,56 @@ class DrawerOpenState:
             return "waiting_for_initial_tool_detection"
         else:
             return "watching_for_tool_checkin_or_checkout"
+    
+    def record_tool_detection_snapshot(self):
+        """Record a snapshot of current_tool_detection_state with timestamp and cleanup old snapshots."""
+        now = datetime.now()
+        # Store snapshot with current timestamp
+        self.tool_detection_state_history.append((now, self.current_tool_detection_state.copy()))
+        
+        # Clean up snapshots older than 2 seconds
+        cutoff_time = now - timedelta(seconds=2)
+        self.tool_detection_state_history = [
+            (timestamp, state) for timestamp, state in self.tool_detection_state_history
+            if timestamp > cutoff_time
+        ]
+    
+    def get_tool_detection_state_2_seconds_ago(self) -> set[str]:
+        """
+        Get the tool detection state from approximately 2 seconds ago.
+        Falls back to the most recent non-empty snapshot, or current state if no snapshots exist.
+        """
+        now = datetime.now()
+        target_time = now - timedelta(seconds=2)
+        
+        # First, try to find snapshots at or before 2 seconds ago (preferred)
+        candidates_at_or_before = []
+        candidates_after = []
+        
+        for timestamp, state in self.tool_detection_state_history:
+            if timestamp <= target_time:
+                candidates_at_or_before.append((timestamp, state))
+            else:
+                candidates_after.append((timestamp, state))
+        
+        # Prefer the most recent snapshot at or before 2 seconds ago
+        if candidates_at_or_before:
+            # Sort by timestamp descending to get the most recent
+            candidates_at_or_before.sort(key=lambda x: x[0], reverse=True)
+            return candidates_at_or_before[0][1]
+        
+        # If no snapshot at or before 2 seconds, use the closest one overall
+        if candidates_after:
+            candidates_after.sort(key=lambda x: abs((x[0] - target_time).total_seconds()))
+            return candidates_after[0][1]
+        
+        # Fallback: use the most recent non-empty snapshot
+        for timestamp, state in reversed(self.tool_detection_state_history):
+            if state:  # Non-empty set
+                return state
+        
+        # Final fallback: use current state (might be empty, but it's better than nothing)
+        return self.current_tool_detection_state
 
 
 class InventoryStateManager:
@@ -119,8 +173,11 @@ class InventoryStateManager:
         save_state: DrawerOpenState = self.tool_detection_state
         self.tool_detection_state = NoDrawerOpenState()
 
-        checked_out_tools = save_state.initial_tool_detection_state - save_state.current_tool_detection_state
-        returned_tools = save_state.current_tool_detection_state - save_state.initial_tool_detection_state
+        # Use 2-second-old snapshot instead of current (potentially empty) state
+        tool_detection_state_to_use = save_state.get_tool_detection_state_2_seconds_ago()
+
+        checked_out_tools = save_state.initial_tool_detection_state - tool_detection_state_to_use
+        returned_tools = tool_detection_state_to_use - save_state.initial_tool_detection_state
         for tool in checked_out_tools:
             self.current_inventory[tool][save_state.drawer_identifier] -= 1
             self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool))
