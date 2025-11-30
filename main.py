@@ -220,6 +220,8 @@ while True:
         elif drawer_state.detailed_state == "watching_for_tool_checkin_or_checkout":
             # Update current tool detection state
             drawer_state.current_tool_detection_state = tool_detection_set.copy()
+            # Record snapshot for 2-second buffer
+            drawer_state.record_tool_detection_snapshot()
     
     rgb_frame = frame[:, :, ::-1]
     small = cv2.resize(rgb_frame, (0, 0), fx=0.25, fy=0.25)
