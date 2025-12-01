@@ -31,13 +31,14 @@ class Tool:
     cost: float
 
 
-class InventoryUpdateLogEntry(TypedDict):
+@dataclass
+class InventoryUpdateLogEntry:
     id: str
     timestamp: int
     type: Literal["tool_checkin", "tool_checkout"]
     user: User
     tool: Tool
-    eventImageUrl: str
+    eventImageUrl: str = field(repr=False)
 
 @dataclass
 class NoDrawerOpenState:
