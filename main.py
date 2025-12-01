@@ -29,6 +29,15 @@ def on_mouse(event, x, y, flags, param):
         clicked_point = (x, y)
         print("Clicked at:", clicked_point)
 
+def frame_to_data_url(frame: np.ndarray):
+  _, buffer = cv2.imencode('.jpg', frame)
+  frame_bytes = buffer.tobytes()
+  frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
+  frame_data_uri = f"data:image/jpeg;base64,{frame_base64}"
+#   return frame_data_uri
+  return "https://picsum.photos/seed/1/500"
+  
+
 print("setting up facial encodings")
 
 mason_image = face_recognition.load_image_file("faces/mason.png")
@@ -329,10 +338,3 @@ while True:
 
 cv2.destroyAllWindows()
 
-def frame_to_data_url(frame: np.ndarray):
-  _, buffer = cv2.imencode('.jpg', frame)
-  frame_bytes = buffer.tobytes()
-  frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
-  frame_data_uri = f"data:image/jpeg;base64,{frame_base64}"
-  return frame_data_uri
-  
