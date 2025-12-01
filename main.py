@@ -206,8 +206,8 @@ while True:
         continue
     
     # Get tracked detections for tool state management
-    tracked_results = model(kinect_color_frame, verbose=False)[0]
-    tracked_detections = sv.Detections.from_ultralytics(tracked_results)
+    results = model(kinect_color_frame, verbose=False)[0]
+    tracked_detections = sv.Detections.from_ultralytics(results)
     tracked_detections = tracker.update_with_detections(tracked_detections)
     
     # Extract tool detections in format "{class_name} {tracker_id}"
@@ -221,14 +221,22 @@ while True:
     # Update tool detection state if drawer is open
     if isinstance(state_manager.tool_detection_state, DrawerOpenState):
         drawer_state = state_manager.tool_detection_state
+        print("detailed state", drawer_state.detailed_state)
         if drawer_state.detailed_state == "waiting_for_initial_tool_detection":
             # Update initial tool detection state
-            drawer_state.initial_tool_detection_state = tool_detection_set.copy()
+            drawer_state.initial_detection_count += len(results)
+            drawer_state.initial_tool_list.update(tool_detection_set)
+            print("initial tool list", drawer_state.initial_tool_list, "initial detection count", drawer_state.initial_detection_count)
+            if drawer_state.initial_detection_count >= 5:
+                print("setting initial tool detection state to", drawer_state.initial_tool_list, "after", drawer_state.initial_detection_count, "tools detected")
+                drawer_state.initial_tool_detection_state = drawer_state.initial_tool_list.copy()
         elif drawer_state.detailed_state == "watching_for_tool_checkin_or_checkout":
             # Update current tool detection state
-            drawer_state.current_tool_detection_state = tool_detection_set.copy()
-            # Record snapshot for 2-second buffer
-            drawer_state.record_tool_detection_snapshot(frame_to_data_url(kinect_color_frame))
+            drawer_state.current_detection_count += len(tool_detection_set)
+            if drawer_state.current_detection_count >= 5:
+                drawer_state.current_tool_detection_state = tool_detection_set.copy()
+                # Record snapshot for 2-second buffer
+                drawer_state.record_tool_detection_snapshot(frame_to_data_url(kinect_color_frame))
     
     rgb_frame = frame[:, :, ::-1]
     small = cv2.resize(rgb_frame, (0, 0), fx=0.25, fy=0.25)

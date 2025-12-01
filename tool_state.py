@@ -44,7 +44,7 @@ class InventoryUpdateLogEntry:
 class NoDrawerOpenState:
     state: Literal["no_drawer_open"] = "no_drawer_open"
 
-MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT = 1000
+MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT = 2000
 
 @dataclass
 class DrawerOpenState:
@@ -52,8 +52,14 @@ class DrawerOpenState:
     last_detected_user: User | None = None
     time_of_drawer_open: datetime = field(default_factory=datetime.now)
 
+    initial_detection_count: int = 0
+    current_detection_count: int = 0
+
     initial_tool_detection_state: set[str] = field(default_factory=set)
     current_tool_detection_state: set[str] = field(default_factory=set)
+
+    initial_tool_list: set[str] = field(default_factory=set)
+    current_tool_list: set[str] = field(default_factory=set)
     
     # Buffer to store timestamped snapshots of current_tool_detection_state
     # Each entry is (timestamp, tool_detection_state_copy, frame_base64)
@@ -64,7 +70,7 @@ class DrawerOpenState:
     @property
     def detailed_state(self) -> Literal["waiting_for_initial_tool_detection", "watching_for_tool_checkin_or_checkout"]:
         drawer_open_delta = datetime.now() - self.time_of_drawer_open
-        is_ready_for_tool_count_changes = drawer_open_delta.total_seconds() < MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT / 1000
+        is_ready_for_tool_count_changes = drawer_open_delta.total_seconds() < (MS_FROM_DRAWER_OPEN_TO_WATCHING_FOR_TOOL_CHECKIN_OR_CHECKOUT / 1000)
 
         if is_ready_for_tool_count_changes:
             return "waiting_for_initial_tool_detection"
