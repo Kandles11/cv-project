@@ -195,7 +195,7 @@ class InventoryStateManager:
 
         checked_out_tools = save_state.initial_tool_detection_state - tool_detection_state_to_use
         returned_tools = tool_detection_state_to_use - save_state.initial_tool_detection_state
-        should_do_check_out = DRAWER_STATE[self.tool_detection_state.drawer_identifier]
+        should_do_check_out = DRAWER_STATE[save_state.drawer_identifier]
         if DO_UPDATE:
             if should_do_check_out:
                 for tool in checked_out_tools:
