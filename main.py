@@ -219,12 +219,7 @@ while True:
             # Update current tool detection state
             drawer_state.current_tool_detection_state = tool_detection_set.copy()
             # Record snapshot for 2-second buffer
-            # Encode frame as base64 JPEG data URI
-            _, buffer = cv2.imencode('.jpg', kinect_color_frame)
-            frame_bytes = buffer.tobytes()
-            frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
-            frame_data_uri = f"data:image/jpeg;base64,{frame_base64}"
-            drawer_state.record_tool_detection_snapshot(frame_data_uri)
+            drawer_state.record_tool_detection_snapshot(frame_to_data_url(kinect_color_frame))
     
     rgb_frame = frame[:, :, ::-1]
     small = cv2.resize(rgb_frame, (0, 0), fx=0.25, fy=0.25)
@@ -333,3 +328,11 @@ while True:
         break
 
 cv2.destroyAllWindows()
+
+def frame_to_data_url(frame: np.ndarray):
+  _, buffer = cv2.imencode('.jpg', frame)
+  frame_bytes = buffer.tobytes()
+  frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
+  frame_data_uri = f"data:image/jpeg;base64,{frame_base64}"
+  return frame_data_uri
+  

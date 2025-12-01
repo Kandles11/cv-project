@@ -16,14 +16,17 @@ class User:
     id: str
     name: str
     email: str
-    imageUrl: str
+    imageUrl: str = field(repr=False)
+    
+    def update_image_url(new_url: str):
+      self.imageUrl=new_url
 
 @dataclass
 class Tool:
     id: str
     name: str
     description: str
-    imageUrl: str
+    imageUrl: str = field(repr=False)
     type: str
     cost: float
 
