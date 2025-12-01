@@ -51,7 +51,8 @@ class DrawerOpenState:
     drawer_identifier: str
     last_detected_user: User | None = None
     time_of_drawer_open: datetime = field(default_factory=datetime.now)
-
+    
+    initial_detection_count: int = 0
     initial_tool_detection_state: set[str] = field(default_factory=set)
     current_tool_detection_state: set[str] = field(default_factory=set)
     

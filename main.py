@@ -223,7 +223,9 @@ while True:
         drawer_state = state_manager.tool_detection_state
         if drawer_state.detailed_state == "waiting_for_initial_tool_detection":
             # Update initial tool detection state
-            drawer_state.initial_tool_detection_state = tool_detection_set.copy()
+            drawer_state.initial_detection_count += len(tool_detection_set)
+            if drawer_state.initial_detection_count >= 10 and len(tool_detection_set) > len(drawer_state.initial_tool_detection_state):
+              drawer_state.initial_tool_detection_state = tool_detection_set.copy()
         elif drawer_state.detailed_state == "watching_for_tool_checkin_or_checkout":
             # Update current tool detection state
             drawer_state.current_tool_detection_state = tool_detection_set.copy()
