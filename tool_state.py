@@ -208,14 +208,12 @@ class InventoryStateManager:
         should_do_check_out = DRAWER_STATE[save_state.drawer_identifier]
         if DO_UPDATE:
             if should_do_check_out:
-                for tool in checked_out_tools:
-                    tool = hardcode_tool if hardcode_tool else tool
+                for tool in [hardcode_tool] if hardcode_tool else list(checked_out_tools):
                     self.current_inventory[tool][save_state.drawer_identifier] -= 1
                     self._generate_event_log_entry(event_type="tool_checkin", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
                     break
             else:
-                for tool in returned_tools:
-                    tool = hardcode_tool if hardcode_tool else tool
+                for tool in [hardcode_tool] if hardcode_tool else list(returned_tools):
                     self.current_inventory[tool][save_state.drawer_identifier] += 1
                     self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
                     break
@@ -239,6 +237,7 @@ class InventoryStateManager:
     def _generate_event_log_entry(self, event_type: Literal["tool_checkout", "tool_checkin"], user: User, tool: Tool, event_image_base64: str):
         now = datetime.now()
         timestamp = int(now.timestamp())
+        print("Adding event log entry", event_type, user, tool)
         self.event_log.append(InventoryUpdateLogEntry(
             id=str(uuid4()),
             timestamp=timestamp,

@@ -34,8 +34,8 @@ def frame_to_data_url(frame: np.ndarray):
   frame_bytes = buffer.tobytes()
   frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
   frame_data_uri = f"data:image/jpeg;base64,{frame_base64}"
-#   return frame_data_uri
-  return "https://picsum.photos/seed/1/500"
+  return frame_data_uri
+#   return "https://picsum.photos/seed/1/500"
   
 
 print("setting up facial encodings")
@@ -43,17 +43,11 @@ print("setting up facial encodings")
 mason_image = face_recognition.load_image_file("faces/mason.png")
 mason_face_encoding = face_recognition.face_encodings(mason_image)[0]
 
-gabriel_image = face_recognition.load_image_file("faces/gabe.jpg")
+gabriel_image = face_recognition.load_image_file("faces/gabe.png")
 gabriel_face_encoding = face_recognition.face_encodings(gabriel_image)[0]
 
 colin_image = face_recognition.load_image_file("faces/colin.jpg")
 colin_face_encoding = face_recognition.face_encodings(colin_image)[0]
-
-# carrie_image = face_recognition.load_image_file("faces/carrie.png")
-# carrie_face_encoding = face_recognition.face_encodings(carrie_image)[0]
-
-# mike_image = face_recognition.load_image_file("faces/mike.png")
-# mike_face_encoding = face_recognition.face_encodings(mike_image)[0]
 
 print("we have finished encodings")
 
@@ -61,15 +55,11 @@ known_face_encodings = [
     mason_face_encoding,
     gabriel_face_encoding,
     colin_face_encoding,
-    # carrie_face_encoding,
-    # mike_face_encoding
 ]
 known_face_names = [
     "Mason Thomas - mgt210000",
     "Gabriel Burbach - gmb190004",
     "Colin Wong - csw220002",
-    # "Carrie Thomas",
-    # "Michael Thomas"
 ]
 
 def get_video():
@@ -301,7 +291,7 @@ while True:
     update_annotated_frame(annotated_frame)
     
     cv2.imshow('Video', frame)
-    cv2.imshow('RGB', kinect_color_frame)
+    # cv2.imshow('RGB', kinect_color_frame)
     cv2.imshow('Depth', depth_frame / 2048)  # simple visualization
     cv2.imshow('Detections', annotated_frame)
     
