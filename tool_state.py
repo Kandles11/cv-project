@@ -9,7 +9,7 @@ DRAWER_TO_TOOL_MAP = {
     "clamps": "clamp"
 }
 
-DRAWER_STATE = defaultdict[str, bool]()
+DRAWER_STATE = defaultdict(lambda: False)
 
 @dataclass
 class User:
@@ -209,7 +209,7 @@ class InventoryStateManager:
                     self.current_inventory[tool][save_state.drawer_identifier] += 1
                     self._generate_event_log_entry(event_type="tool_checkout", user=save_state.last_detected_user, tool=self._generate_tool_from_class(tool), event_image_base64=frame_base64)
                     break
-        DRAWER_STATE[self.tool_detection_state.drawer_identifier] = not DRAWER_STATE[self.tool_detection_state.drawer_identifier]
+        DRAWER_STATE[save_state.drawer_identifier] = not DRAWER_STATE[save_state.drawer_identifier]
 
         print(f"prev state: {save_state}")
         print(f"new state: {self.tool_detection_state}")
