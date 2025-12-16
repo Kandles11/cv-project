@@ -34,8 +34,7 @@ def frame_to_data_url(frame: np.ndarray):
   frame_bytes = buffer.tobytes()
   frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
   frame_data_uri = f"data:image/jpeg;base64,{frame_base64}"
-#   return frame_data_uri
-  return "https://picsum.photos/seed/1/500"
+  return frame_data_uri
   
 
 print("setting up facial encodings")
