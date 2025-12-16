@@ -4,13 +4,6 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-DRAWER_TO_TOOL_MAP = {
-    "drivers and bits": "ifixit",
-    "clamps": "clamp"
-}
-
-DRAWER_STATE = defaultdict(lambda: False)
-
 
 @dataclass
 class User:
@@ -19,7 +12,7 @@ class User:
     email: str
     imageUrl: str = field(repr=False)
 
-    def update_image_url(new_url: str):
+    def update_image_url(self, new_url: str):
         self.imageUrl = new_url
 
 
@@ -206,16 +199,6 @@ class InventoryStateManager:
         assert isinstance(self.tool_detection_state, DrawerOpenState)
         print("Transitioning from drawer open to no drawer open.")
 
-        DO_UPDATE = True
-        if self.tool_detection_state.drawer_identifier not in DRAWER_TO_TOOL_MAP:
-            DO_UPDATE = False
-            print("skipping inventory update, drawer not in DRAWER_TO_TOOL_MAP")
-            hardcode_tool = None
-        else:
-            hardcode_tool = DRAWER_TO_TOOL_MAP[
-                self.tool_detection_state.drawer_identifier
-            ]
-
         save_state: DrawerOpenState = self.tool_detection_state
         self.tool_detection_state = NoDrawerOpenState()
 
@@ -230,33 +213,26 @@ class InventoryStateManager:
         returned_tools = (
             tool_detection_state_to_use - save_state.initial_tool_detection_state
         )
-        should_do_check_out = DRAWER_STATE[save_state.drawer_identifier]
-        if DO_UPDATE:
-            if should_do_check_out:
-                for tool in checked_out_tools:
-                    tool = hardcode_tool if hardcode_tool else tool
-                    self.current_inventory[tool][save_state.drawer_identifier] -= 1
-                    self._generate_event_log_entry(
-                        event_type="tool_checkin",
-                        user=save_state.last_detected_user,
-                        tool=self._generate_tool_from_class(tool),
-                        event_image_base64=frame_base64,
-                    )
-                    break
-            else:
-                for tool in returned_tools:
-                    tool = hardcode_tool if hardcode_tool else tool
-                    self.current_inventory[tool][save_state.drawer_identifier] += 1
-                    self._generate_event_log_entry(
-                        event_type="tool_checkout",
-                        user=save_state.last_detected_user,
-                        tool=self._generate_tool_from_class(tool),
-                        event_image_base64=frame_base64,
-                    )
-                    break
-        DRAWER_STATE[save_state.drawer_identifier] = not DRAWER_STATE[
-            save_state.drawer_identifier
-        ]
+
+        # Process checked out tools (tools that were there initially but not now = taken)
+        for tool in checked_out_tools:
+            self.current_inventory[tool][save_state.drawer_identifier] -= 1
+            self._generate_event_log_entry(
+                event_type="tool_checkout",
+                user=save_state.last_detected_user,
+                tool=self._generate_tool_from_class(tool),
+                event_image_base64=frame_base64,
+            )
+
+        # Process returned tools (tools that are there now but weren't initially = returned)
+        for tool in returned_tools:
+            self.current_inventory[tool][save_state.drawer_identifier] += 1
+            self._generate_event_log_entry(
+                event_type="tool_checkin",
+                user=save_state.last_detected_user,
+                tool=self._generate_tool_from_class(tool),
+                event_image_base64=frame_base64,
+            )
 
         print(f"prev state: {save_state}")
         print(f"new state: {self.tool_detection_state}")
