@@ -70,12 +70,12 @@ async def get_events():
         # Tool format in state is: f"{class_name} {tracker_id}"
         
         formatted_event = {
-            "id": event["id"],
-            "timestamp": event["timestamp"],
-            "type": event["type"],
-            "user": event["user"],
-            "tool": event["tool"],
-            "eventImageUrl": event["eventImageUrl"]
+            "id": event.id,
+            "timestamp": event.timestamp,
+            "type": event.type,
+            "user": event.user,
+            "tool": event.tool,
+            "eventImageUrl": event.eventImageUrl
         }
         formatted_events.append(formatted_event)
     
@@ -99,15 +99,15 @@ async def get_overview():
     # that don't have a corresponding "tool_checkin"
     checked_out_tools = {}
     for event in state_manager.event_log:
-        if event["user"] is None:
+        if event.user is None:
             continue
-        if event["type"] == "tool_checkout":
+        if event.type == "tool_checkout":
             # For now, we'll use a simple count
             # TODO: Track specific tools when tool information is added
-            user_id = event["user"].id
+            user_id = event.user.id
             checked_out_tools[user_id] = checked_out_tools.get(user_id, 0) + 1
-        elif event["type"] == "tool_checkin":
-            user_id = event["user"].id
+        elif event.type == "tool_checkin":
+            user_id = event.user.id
             if user_id in checked_out_tools:
                 checked_out_tools[user_id] = max(0, checked_out_tools[user_id] - 1)
     
