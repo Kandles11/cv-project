@@ -1,4 +1,4 @@
-from typing import Counter, Literal, TypedDict
+from typing import Counter, Literal
 from uuid import uuid4
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
